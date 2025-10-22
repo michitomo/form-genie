@@ -105,10 +105,17 @@ function groupFields(inputs) {
   const groups = {};
   inputs.forEach(input => {
     const name = input.name || input.id || '';
-    // Group by base name (remove trailing numbers)
-    const base = name.replace(/\d+$/, '');
-    if (!groups[base]) groups[base] = [];
-    groups[base].push(input);
+    // Special handling for name fields
+    if (name.includes('lastname') || name.includes('firstname') || name.includes('LastName') || name.includes('FirstName')) {
+      // Group all name-related fields together
+      if (!groups['name']) groups['name'] = [];
+      groups['name'].push(input);
+    } else {
+      // Group by base name (remove trailing numbers)
+      const base = name.replace(/\d+$/, '');
+      if (!groups[base]) groups[base] = [];
+      groups[base].push(input);
+    }
   });
   // Return groups, including single fields
   return Object.values(groups);
@@ -129,7 +136,7 @@ async function fillGroup(group, profile) {
     })
   }));
 
-  const prompt = `Profile: ${JSON.stringify(profile)}. Fields to fill: ${JSON.stringify(fieldData)}. Determine the values to fill in each field based on the profile. If fields are related (like parts of a phone number), split the value accordingly. For single fields, fill the complete value. For select fields, choose the most appropriate option from the provided options list based on the profile data. Respond with only a valid JSON array of strings, one for each field in the same order. For select fields, use the value of the selected option. Use empty strings for fields that shouldn't be filled. Example: ["090", "1234", "5678"] for a phone number split into 3 fields, or ["09012345678"] for a single phone field, or ["male"] for a gender select. Do not include any other text, explanations, or formatting.`;
+  const prompt = `Profile: ${JSON.stringify(profile)}. Fields to fill: ${JSON.stringify(fieldData)}. Determine the values to fill in each field based on the profile. If fields are related (like parts of a phone number), split the value accordingly. For name fields, split into last name and first name in the correct order. Respond with only a valid JSON array of strings, one for each field in the same order. For select fields, choose the most appropriate option from the provided options list based on the profile data. For select fields, use the value of the selected option. Use empty strings for fields that shouldn't be filled. Example: ["090", "1234", "5678"] for a phone number split into 3 fields, or ["09012345678"] for a single phone field, or ["male"] for a gender select, or ["Yamada", "Taro"] for name fields split into last and first. Do not include any other text, explanations, or formatting.`;
 
   try {
     const session = await LanguageModel.create();
