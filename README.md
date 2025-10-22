@@ -5,7 +5,7 @@ Form Genie is a privacy-first Chrome extension powered by on-device Gemini Nano 
 
 ## The Problem: "Form Frustration" is Universal
 We've all faced it: web forms that reject our saved auto-fill data.
-*   **Phone numbers** split into three separate boxes.
+*   **Phone numbers** split into separate boxes.
 *   **Addresses** that need a separate field for your apartment number.
 *   **Names** that must be entered without special characters like apostrophes.
 *   **Dates** that require a specific format (`MM/DD/YYYY` vs `DD/MM/YYYY`).
@@ -15,10 +15,10 @@ This problem is especially severe on Japanese websites, which often require name
 ## Our Solution: Context-Aware, On-Device AI
 Form Genie doesn't just blindly paste saved text. It uses the power of **Gemini Nano**, running directly in the browser, to **understand the context** of each form field.
 
-By analyzing HTML elements like `<label>`, `placeholder`, and `name` attributes, it intelligently determines what the website is asking for. Then, it dynamically reformats your saved personal information to fit perfectly, saving you time and eliminating errors. Because it all happens on-device, your personal data **never leaves your computer**, guaranteeing complete privacy.
+By letting Gemini Nano analyzing HTML elements like `<label>`, `placeholder`, and `name` attributes, it intelligently determines what the website is asking for. Then, it dynamically reformats your saved personal information to fit perfectly, saving you time and eliminating errors. Because it all happens on-device, your personal data **never leaves your computer**, guaranteeing complete privacy.
 
 ## How It Works: A Seamless User Experience
-1.  **Initial Setup:** A one-time setup where the user saves their information (e.g., name, address, phone) in both their native language and English within different profiles (e.g., "Home," "Work").
+1.  **Initial Setup:** A one-time setup where the user saves their information in both their native language and English.
 
 2.  **Automatic Detection:** Upon visiting a page with a form, Form Genie automatically detects and analyzes the form fields in the background.
 

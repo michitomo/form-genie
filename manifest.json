@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "Form Genie",
+  "version": "1.0",
+  "description": "Privacy-first Chrome extension that auto-fills forms using on-device AI.",
+  "permissions": [
+    "activeTab",
+    "storage",
+    "scripting"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Form Genie"
+  },
+  "background": {
+    "service_worker": "background.js"
+  }
+}
