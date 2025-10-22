@@ -8,14 +8,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function saveProfile(event) {
   event.preventDefault();
-  const lastName = document.getElementById('last-name').value;
-  const firstName = document.getElementById('first-name').value;
+  const fullName = document.getElementById('full-name').value;
   const email = document.getElementById('email').value;
   const phone = document.getElementById('phone').value;
   const address = document.getElementById('address').value;
   const birthDate = document.getElementById('birth-date').value;
 
-  const profile = { lastName, firstName, email, phone, address, birthDate };
+  const profile = { fullName, email, phone, address, birthDate };
 
   await chrome.storage.local.set({ profile });
 
@@ -25,8 +24,7 @@ async function saveProfile(event) {
 
 async function loadProfile() {
   const { profile = {} } = await chrome.storage.local.get('profile');
-  document.getElementById('last-name').value = profile.lastName || '';
-  document.getElementById('first-name').value = profile.firstName || '';
+  document.getElementById('full-name').value = profile.fullName || '';
   document.getElementById('email').value = profile.email || '';
   document.getElementById('phone').value = profile.phone || '';
   document.getElementById('address').value = profile.address || '';
