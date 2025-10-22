@@ -21,8 +21,5 @@
   "action": {
     "default_popup": "popup.html",
     "default_title": "Form Genie"
-  },
-  "background": {
-    "service_worker": "background.js"
   }
 }

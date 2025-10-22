@@ -120,10 +120,16 @@ async function fillGroup(group, profile) {
     label: getLabelForInput(input),
     placeholder: input.placeholder,
     name: input.name,
-    type: input.type
+    type: input.type || input.tagName.toLowerCase(),
+    ...(input.tagName === 'SELECT' && {
+      options: Array.from(input.options).map(option => ({
+        value: option.value,
+        text: option.textContent.trim()
+      }))
+    })
   }));
 
-  const prompt = `Profile: ${JSON.stringify(profile)}. Fields to fill: ${JSON.stringify(fieldData)}. Determine the values to fill in each field based on the profile. If fields are related (like parts of a phone number), split the value accordingly. For single fields, fill the complete value. Respond with only a valid JSON array of strings, one for each field in the same order. Use empty strings for fields that shouldn't be filled. Example: ["090", "1234", "5678"] for a phone number split into 3 fields, or ["09012345678"] for a single phone field. Do not include any other text, explanations, or formatting.`;
+  const prompt = `Profile: ${JSON.stringify(profile)}. Fields to fill: ${JSON.stringify(fieldData)}. Determine the values to fill in each field based on the profile. If fields are related (like parts of a phone number), split the value accordingly. For single fields, fill the complete value. For select fields, choose the most appropriate option from the provided options list based on the profile data. Respond with only a valid JSON array of strings, one for each field in the same order. For select fields, use the value of the selected option. Use empty strings for fields that shouldn't be filled. Example: ["090", "1234", "5678"] for a phone number split into 3 fields, or ["09012345678"] for a single phone field, or ["male"] for a gender select. Do not include any other text, explanations, or formatting.`;
 
   try {
     const session = await LanguageModel.create();
@@ -136,7 +142,22 @@ async function fillGroup(group, profile) {
 
     group.forEach((input, index) => {
       if (values[index]) {
-        input.value = values[index];
+        if (input.tagName === 'SELECT') {
+          // For select elements, find the option that matches the value or text
+          const value = values[index];
+          let selectedOption = null;
+          for (const option of input.options) {
+            if (option.value === value || option.textContent.trim() === value) {
+              selectedOption = option;
+              break;
+            }
+          }
+          if (selectedOption) {
+            input.value = selectedOption.value;
+          }
+        } else {
+          input.value = values[index];
+        }
       }
     });
   } catch (error) {
