@@ -33,60 +33,60 @@ function detectForms() {
       if (input.name || input.id) {
         canFill = true;
         input.classList.add('form-genie-highlight');
+
+        // Add unique ID for context menu targeting
+        if (!input.id) {
+          const uniqueId = 'form-genie-' + Math.random().toString(36).substr(2, 9);
+          input.id = uniqueId;
+          input.setAttribute('data-form-genie-id', uniqueId);
+        }
       }
     });
     if (canFill) {
-      addFillButton(form);
+      // Add tooltip to indicate right-click functionality
+      addFormTooltip(form);
     }
   });
 }
 
-// Add fill button near the form
-function addFillButton(form) {
-  const button = document.createElement('button');
-  button.textContent = '✨ Fill with Form Genie';
-  button.id = 'form-genie-button';
-  button.style.cssText = `
+// Add tooltip to indicate right-click functionality
+function addFormTooltip(form) {
+  const tooltip = document.createElement('div');
+  tooltip.textContent = 'Right-click on form fields to fill with Form Genie ✨';
+  tooltip.style.cssText = `
     position: absolute;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: rgba(102, 126, 234, 0.95);
     color: white;
-    border: none;
-    padding: 12px 20px;
-    border-radius: 8px;
-    cursor: pointer;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 12px;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    font-size: 14px;
-    font-weight: 600;
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-    transition: all 0.2s ease;
+    font-weight: 500;
     z-index: 1000;
-    display: flex;
-    align-items: center;
-    gap: 8px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   `;
 
-  // Add hover effects
-  button.onmouseover = () => {
-    button.style.transform = 'translateY(-2px)';
-    button.style.boxShadow = '0 6px 20px rgba(102, 126, 234, 0.4)';
-  };
-
-  button.onmouseout = () => {
-    button.style.transform = 'translateY(0)';
-    button.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.3)';
-  };
-
-  button.onmousedown = () => {
-    button.style.transform = 'translateY(0)';
-  };
-
-  // Position near form
   const rect = form.getBoundingClientRect();
-  button.style.top = `${rect.top - 60}px`;
-  button.style.left = `${rect.left}px`;
-  document.body.appendChild(button);
+  tooltip.style.top = `${rect.top - 35}px`;
+  tooltip.style.left = `${rect.left}px`;
 
-  button.addEventListener('click', () => fillForm(form));
+  document.body.appendChild(tooltip);
+
+  // Show tooltip briefly when form is detected
+  setTimeout(() => {
+    tooltip.style.opacity = '1';
+    setTimeout(() => {
+      tooltip.style.opacity = '0';
+      setTimeout(() => {
+        if (tooltip.parentNode) {
+          document.body.removeChild(tooltip);
+        }
+      }, 300);
+    }, 2000);
+  }, 500);
 }
 
 // Fill the form using AI
@@ -123,6 +123,31 @@ async function fillForm(form) {
   loading.style.display = 'none';
   document.body.removeChild(loading);
 }
+
+// Listen for messages from background script
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.action === 'fillForm') {
+    // Find the form that contains the target element
+    const targetElement = document.getElementById(message.targetElementId) ||
+                         document.querySelector(`[data-form-genie-id="${message.targetElementId}"]`);
+
+    if (targetElement) {
+      let form = targetElement.closest('form');
+      if (!form) {
+        // If no form element, create a virtual form with all inputs in the same container
+        const container = targetElement.closest('div, section, article') || document.body;
+        const inputs = container.querySelectorAll('input, textarea, select');
+        if (inputs.length > 0) {
+          form = { querySelectorAll: () => inputs };
+        }
+      }
+
+      if (form) {
+        fillForm(form);
+      }
+    }
+  }
+});
 
 // Group related fields
 function groupFields(inputs) {
