@@ -5,21 +5,43 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Form Genie Demo Pages</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; text-align: center; }
+        body { font-family: Arial, sans-serif; margin: 20px; text-align: center; background: #f5f5f5; }
+        .container { max-width: 600px; margin: auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         h1 { color: #007bff; }
-        .form-links { margin: 20px 0; }
-        .form-links a { display: block; margin: 10px; padding: 10px; background: #f8f9fa; border: 1px solid #dee2e6; text-decoration: none; color: #007bff; border-radius: 5px; }
-        .form-links a:hover { background: #e9ecef; }
+        .intro { margin: 20px 0; color: #666; }
+        .form-links { margin: 30px 0; }
+        .form-links a { display: block; margin: 15px 0; padding: 15px; background: #f8f9fa; border: 1px solid #dee2e6; text-decoration: none; color: #007bff; border-radius: 5px; transition: all 0.3s; }
+        .form-links a:hover { background: #e9ecef; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .form-links .description { font-size: 14px; color: #666; margin-top: 5px; }
+        .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #dee2e6; }
+        .footer a { color: #007bff; text-decoration: none; }
     </style>
 </head>
 <body>
-    <h1>Form Genie Demo Forms</h1>
-    <p>Sample registration forms to demonstrate Form Genie's auto-fill capabilities.</p>
-    <div class="form-links">
-        <a href="us-form1.html">US Registration Form - Simple</a>
-        <a href="us-form2.html">US Registration Form - Complex</a>
-        <a href="jp-form1.html">Japanese Registration Form</a>
+    <div class="container">
+        <h1>Form Genie Demo Forms</h1>
+        <p class="intro">Sample registration forms demonstrating Form Genie's AI-powered auto-fill capabilities for handling complex form variations.</p>
+        
+        <div class="form-links">
+            <a href="us-form1.html">
+                <strong>US Form 1: Format Challenges</strong>
+                <div class="description">Phone number split into 3 fields, no special characters in names, dropdown date selection, address line separation</div>
+            </a>
+            
+            <a href="us-form2.html">
+                <strong>US Form 2: Alternative Format</strong>
+                <div class="description">Full name split (First/M.I./Last), phone format (XXX) XXX-XXXX, ZIP+4, state dropdown, credit card in 4 fields</div>
+            </a>
+            
+            <a href="jp-form1.html">
+                <strong>Japanese Form: Localization</strong>
+                <div class="description">Kanji/Kana name fields, Japanese postal code format, prefecture/city/address structure</div>
+            </a>
+        </div>
+        
+        <div class="footer">
+            <p><a href="https://github.com/michitomo/form-genie">View on GitHub</a></p>
+        </div>
     </div>
-    <p><a href="https://github.com/michitomo/form-genie">View on GitHub</a></p>
 </body>
 </html>
