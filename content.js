@@ -257,7 +257,9 @@ RULES:
 - addressLine1: Street only (no apartment)
 - addressLine2: Apartment/unit only (e.g., "Apt 19")
 - city/state/zip: Parse from address
-- password fields: Empty string ""
+- password fields: ALWAYS empty string ""
+- referral codes or fields with no data in profile: ALWAYS empty string ""
+- If you don't have the data for a field, use empty string ""
 
 Output format: ["val1","val2",...,"val${fieldData.length}"]`;
 
@@ -308,6 +310,21 @@ Output format: ["val1","val2",...,"val${fieldData.length}"]`;
     // Second pass: validate and fix any errors
     const invalidFields = [];
     group.forEach((input, index) => {
+      // Skip validation for password fields and empty optional fields
+      if (input.type === 'password') {
+        return; // Don't validate or fix password fields
+      }
+      
+      // Skip if field is optional (not required) and we left it empty
+      if (!input.required && values[index] === '') {
+        return;
+      }
+      
+      // Skip fields we intentionally left empty (no data in profile)
+      if (values[index] === '') {
+        return;
+      }
+      
       if (input.checkValidity && !input.checkValidity()) {
         invalidFields.push({
           index: index,
