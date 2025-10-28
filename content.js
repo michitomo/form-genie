@@ -33,13 +33,6 @@ function detectForms() {
       if (input.name || input.id) {
         canFill = true;
         input.classList.add('form-genie-highlight');
-
-        // Add unique ID for context menu targeting
-        if (!input.id) {
-          const uniqueId = 'form-genie-' + Math.random().toString(36).substr(2, 9);
-          input.id = uniqueId;
-          input.setAttribute('data-form-genie-id', uniqueId);
-        }
       }
     });
     if (canFill) {
@@ -52,7 +45,7 @@ function detectForms() {
 // Add tooltip to indicate right-click functionality
 function addFormTooltip(form) {
   const tooltip = document.createElement('div');
-  tooltip.textContent = 'Right-click on form fields to fill with Form Genie ✨';
+  tooltip.textContent = 'Right-click anywhere on the page to fill forms with Form Genie ✨';
   tooltip.style.cssText = `
     position: absolute;
     background: rgba(102, 126, 234, 0.95);
@@ -85,7 +78,7 @@ function addFormTooltip(form) {
           document.body.removeChild(tooltip);
         }
       }, 300);
-    }, 2000);
+    }, 3000);
   }, 500);
 }
 
@@ -126,28 +119,79 @@ async function fillForm(form) {
 
 // Listen for messages from background script
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.action === 'fillForm') {
-    // Find the form that contains the target element
-    const targetElement = document.getElementById(message.targetElementId) ||
-                         document.querySelector(`[data-form-genie-id="${message.targetElementId}"]`);
-
-    if (targetElement) {
-      let form = targetElement.closest('form');
-      if (!form) {
-        // If no form element, create a virtual form with all inputs in the same container
-        const container = targetElement.closest('div, section, article') || document.body;
-        const inputs = container.querySelectorAll('input, textarea, select');
-        if (inputs.length > 0) {
-          form = { querySelectorAll: () => inputs };
-        }
-      }
-
-      if (form) {
-        fillForm(form);
-      }
-    }
+  if (message.action === "fillAllForms") {
+    // Fill all forms on the page
+    fillAllForms();
   }
 });
+
+// Fill all forms on the page
+async function fillAllForms() {
+  const forms = document.querySelectorAll('form');
+  if (forms.length === 0) {
+    // If no forms found, look for input elements in containers
+    const inputs = document.querySelectorAll('input, textarea, select');
+    if (inputs.length > 0) {
+      // Group inputs by their container
+      const containers = new Map();
+      inputs.forEach(input => {
+        if (input.name || input.id) {
+          const container = input.closest('div, section, article, form') || document.body;
+          if (!containers.has(container)) {
+            containers.set(container, []);
+          }
+          containers.get(container).push(input);
+        }
+      });
+
+      // Fill each group of inputs
+      for (const [container, inputGroup] of containers) {
+        if (inputGroup.length > 0) {
+          await fillFormInputs(inputGroup);
+        }
+      }
+    }
+  } else {
+    // Fill each form
+    for (const form of forms) {
+      await fillForm(form);
+    }
+  }
+}
+
+// Fill a group of inputs (when no form element exists)
+async function fillFormInputs(inputs) {
+  // Get user profile from storage
+  const { profile } = await chrome.storage.local.get('profile');
+  if (!profile) {
+    alert('Please set up your profile in the Form Genie popup.');
+    return;
+  }
+
+  // Check if AI is available
+  const available = await LanguageModel.availability();
+  if (available === 'unavailable') {
+    alert('Form Genie requires Chrome\'s experimental AI features. Please enable them in chrome://flags/#enable-experimental-web-platform-features and chrome://flags/#optimization-guide-on-device-model.');
+    return;
+  }
+
+  // Show loading
+  const loading = document.createElement('div');
+  loading.className = 'form-genie-loading';
+  loading.textContent = 'Form Genie is thinking...';
+  document.body.appendChild(loading);
+  loading.style.display = 'block';
+
+  const groups = groupFields(inputs);
+
+  for (const group of groups) {
+    await fillGroup(group, profile);
+  }
+
+  // Hide loading
+  loading.style.display = 'none';
+  document.body.removeChild(loading);
+}
 
 // Group related fields
 function groupFields(inputs) {

@@ -5,7 +5,7 @@ chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.create({
     id: "fill-form",
     title: "✨ Fill with Form Genie",
-    contexts: ["editable"],
+    contexts: ["page"],
     documentUrlPatterns: ["<all_urls>"]
   });
 });
@@ -13,10 +13,9 @@ chrome.runtime.onInstalled.addListener(() => {
 // Handle context menu clicks
 chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (info.menuItemId === "fill-form") {
-    // Send message to content script to fill the form
+    // Send message to content script to fill all forms on the page
     chrome.tabs.sendMessage(tab.id, {
-      action: "fillForm",
-      targetElementId: info.targetElementId
+      action: "fillAllForms"
     });
   }
 });
