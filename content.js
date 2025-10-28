@@ -219,7 +219,8 @@ async function fillGroup(group, profile) {
       type: input.type || input.tagName.toLowerCase(),
       pattern: input.pattern || '',
       maxlength: input.maxLength > 0 ? input.maxLength : null,
-      title: input.title || ''
+      title: input.title || '',
+      required: Boolean(input.required)
     };
     
     // For select fields, only include a hint about what to choose, not all options
@@ -237,44 +238,47 @@ async function fillGroup(group, profile) {
     return baseData;
   });
 
-  const prompt = `Fill out a web form with ${fieldData.length} fields using the profile data below.
+  const fieldNames = fieldData.map((f, index) => f.name || `field_${index}`);
+  const fieldSummary = fieldData.map((f, i) => {
+    let desc = `${i + 1}. ${fieldNames[i]} (type: ${f.type}`;
+    if (f.label) desc += `, label: "${f.label.trim()}"`;
+    if (f.placeholder) desc += `, placeholder: "${f.placeholder}"`;
+    desc += `, required: ${f.required})`;
+    if (f.pattern) desc += ` pattern: ${f.pattern}`;
+    if (f.title) desc += ` hint: ${f.title}`;
+    if (f.selectType) desc += ` select: ${f.selectType}`;
+    if (f.availableValues) desc += ` options: ${f.availableValues.join(', ')}`;
+    if (f.sampleOptions) desc += ` sample options: ${f.sampleOptions}`;
+    return desc;
+  }).join('\n');
 
-PROFILE:
-Name: ${profile.fullName}
-Email: ${profile.email}
-Phone: ${profile.phone}
-Birth: ${profile.birthDate}
-Address: ${profile.address}
+  const prompt = `You are Form Genie, an on-device AI that fills web forms using user profile data.
 
-FIELDS:
-${fieldData.map((f, i) => {
-  let desc = `${i + 1}. ${f.name}`;
-  if (f.label) desc += ` (${f.label})`;
-  if (f.pattern) desc += ` [pattern: ${f.pattern}]`;
-  if (f.type === 'password') desc += ' [PASSWORD - EMPTY]';
-  return desc;
-}).join('\n')}
+Profile JSON:
+${JSON.stringify(profile)}
 
-GUIDELINES:
-- Understand what each field needs from its name, label, and pattern
-- Remove apostrophes/hyphens if pattern is [A-Za-z]+ (letters only)
-- Format phone to match pattern: (XXX) XXX-XXXX or split into parts
-- Format dates to match pattern: MM/DD/YYYY or split into month/day/year
-- Parse address into components (street, apartment, city, state, zip)
-- Leave passwords and credit cards empty
-- Leave fields empty if no matching data
+Field Metadata:
+${fieldSummary}
 
-IMPORTANT: Return a JSON array with one value for EACH field listed above:
-[
-  "${fieldData[0]?.name}",  // value for field 1
-  "${fieldData[1]?.name}",  // value for field 2
-  "${fieldData[2]?.name}",  // value for field 3
-  ... ${fieldData.length - 3} more values ...
-  "${fieldData[fieldData.length - 2]?.name}",  // value for field ${fieldData.length - 1}
-  "${fieldData[fieldData.length - 1]?.name}"   // value for field ${fieldData.length}
-]
+Instructions:
+- For each field above, produce the correct string value based on the profile and metadata
+- Respect regex patterns (e.g., [A-Za-z]+ means remove apostrophes/hyphens)
+- Format phone numbers to match patterns, splitting into parts when multiple phone fields exist
+- Format dates to match patterns (convert YYYY-MM-DD as needed)
+- Split addresses into street, apartment, city, state, zip when required
+- Leave passwords, credit card segments, or unknown fields as empty strings
+- Provide a value for every listed field, even if empty
 
-Total: ${fieldData.length} values`;
+Output:
+Return ONLY a JSON object where each key is one of the field names listed above and each value is the string to fill. Example format (keys must match exactly):
+{
+  "${fieldNames[0]}": "value for ${fieldNames[0]}",
+  "${fieldNames[1]}": "value for ${fieldNames[1]}",
+  ...
+  "${fieldNames[fieldNames.length - 1]}": "value for ${fieldNames[fieldNames.length - 1]}"
+}
+
+Do not include any extra commentary or explanations.`;
 
   try {
     const session = await LanguageModel.create({
@@ -286,7 +290,28 @@ Total: ${fieldData.length} values`;
     console.log('AI result:', result);
     const cleanedResult = extractJSON(result.trim());
     console.log('Cleaned result:', cleanedResult);
-    const values = JSON.parse(cleanedResult);
+    const parsed = JSON.parse(cleanedResult);
+
+    let values;
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      values = fieldNames.map(name => {
+        const val = parsed[name];
+        if (val === undefined || val === null) {
+          return '';
+        }
+        return String(val);
+      });
+    } else if (Array.isArray(parsed)) {
+      values = fieldNames.map((_, idx) => {
+        const val = parsed[idx];
+        if (val === undefined || val === null) {
+          return '';
+        }
+        return String(val);
+      });
+    } else {
+      throw new Error('AI response must be a JSON object mapping field names to string values.');
+    }
 
     // Validate that we got the right number of values
     if (values.length !== group.length) {
@@ -353,29 +378,41 @@ Total: ${fieldData.length} values`;
     // If there are validation errors, try to fix them
     if (invalidFields.length > 0) {
       console.log('Validation errors detected:', invalidFields);
+  const fieldsToFix = invalidFields.map(field => fieldNames[field.index]);
+  const exampleKey = fieldsToFix[0] || 'fieldName';
       
-      const fixPrompt = `The following field values failed validation. Fix them:
+  const fixPrompt = `Some field values failed validation. Provide corrected values as JSON.
 
-${invalidFields.map(f => `- ${f.name}: "${f.value}" failed pattern ${f.pattern}
+Fields needing correction (use exact field names as keys in your JSON output):
+${invalidFields.map((f, idx) => `- ${fieldsToFix[idx]}: "${f.value}" failed pattern ${f.pattern || 'n/a'}
   Error: ${f.validationMessage}`).join('\n')}
 
-Profile data for reference:
-Name: ${profile.fullName}
-Phone: ${profile.phone}
+Profile data for reference: ${JSON.stringify(profile)}
 
-Return ONLY a JSON array with ${invalidFields.length} corrected values in the same order.
-Remember: pattern [A-Za-z]+ means remove ALL non-letter characters including apostrophes.`;
+Return ONLY a JSON object containing corrected values for these fields. Example:
+{
+  "${exampleKey}": "corrected value"
+}
+
+Remember: match regex constraints (e.g., [A-Za-z]+ means letters only).`;
 
       const fixResult = await session.prompt(fixPrompt);
       console.log('Fix prompt:', fixPrompt);
       console.log('Fix result:', fixResult);
-      const fixedValues = JSON.parse(extractJSON(fixResult.trim()));
+      const fixedParsed = JSON.parse(extractJSON(fixResult.trim()));
+      if (!fixedParsed || typeof fixedParsed !== 'object' || Array.isArray(fixedParsed)) {
+        throw new Error('AI fix response must be a JSON object keyed by field names.');
+      }
       
       // Apply fixes
-      invalidFields.forEach((field, i) => {
-        if (fixedValues[i]) {
-          field.input.value = fixedValues[i];
-          console.log(`Fixed ${field.name}: "${field.value}" → "${fixedValues[i]}"`);
+      invalidFields.forEach(field => {
+        const key = fieldNames[field.index];
+        if (Object.prototype.hasOwnProperty.call(fixedParsed, key)) {
+          const newValue = fixedParsed[key];
+          if (newValue !== undefined && newValue !== null) {
+            field.input.value = String(newValue);
+            console.log(`Fixed ${field.name}: "${field.value}" → "${newValue}"`);
+          }
         }
       });
     }
