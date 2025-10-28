@@ -12,7 +12,7 @@ const AI_CONFIG = {
   },
   // Configuration for fixing validation errors (slightly more creative)
   FIX: {
-    temperature: 1,
+    temperature: 0.8,
     topK: 50,
   }
 };
@@ -296,7 +296,7 @@ function generateFixPrompt(invalidFields, fieldNames, profile) {
     
     const constraints = [];
     constraints.push(`type=${input.type || input.tagName.toLowerCase()}`);
-    if (input.pattern) constraints.push(`pattern=${input.pattern}`);
+    if (input.pattern) constraints.push(`regex=${input.pattern}`);
     if (input.maxLength > 0) constraints.push(`maxlength=${input.maxLength}`);
     if (input.placeholder) constraints.push(`example="${input.placeholder}"`);
     if (input.required) constraints.push('required');
