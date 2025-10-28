@@ -279,11 +279,13 @@ Output format: ["val1","val2",...,"val${fieldData.length}"]`;
       console.error('Field names:', group.map(input => input.name || input.id));
       console.error('Values received:', values);
       alert(`Form filling error: Expected ${group.length} values but AI returned ${values.length}. Please check console for details.`);
+      session.destroy();
       return;
     }
 
+    // First pass: fill all fields
     group.forEach((input, index) => {
-      if (values[index]) {
+      if (values[index] !== undefined) {
         if (input.tagName === 'SELECT') {
           // For select elements, find the option that matches the value or text
           const value = values[index];
@@ -302,9 +304,57 @@ Output format: ["val1","val2",...,"val${fieldData.length}"]`;
         }
       }
     });
+
+    // Second pass: validate and fix any errors
+    const invalidFields = [];
+    group.forEach((input, index) => {
+      if (input.checkValidity && !input.checkValidity()) {
+        invalidFields.push({
+          index: index,
+          name: input.name,
+          value: values[index],
+          pattern: input.pattern,
+          validationMessage: input.validationMessage,
+          input: input
+        });
+      }
+    });
+
+    // If there are validation errors, try to fix them
+    if (invalidFields.length > 0) {
+      console.log('Validation errors detected:', invalidFields);
+      
+      const fixPrompt = `The following field values failed validation. Fix them:
+
+${invalidFields.map(f => `- ${f.name}: "${f.value}" failed pattern ${f.pattern}
+  Error: ${f.validationMessage}`).join('\n')}
+
+Profile data for reference:
+Name: ${profile.fullName}
+Phone: ${profile.phone}
+
+Return ONLY a JSON array with ${invalidFields.length} corrected values in the same order.
+Remember: pattern [A-Za-z]+ means remove ALL non-letter characters including apostrophes.`;
+
+      const fixResult = await session.prompt(fixPrompt);
+      console.log('Fix prompt:', fixPrompt);
+      console.log('Fix result:', fixResult);
+      const fixedValues = JSON.parse(extractJSON(fixResult.trim()));
+      
+      // Apply fixes
+      invalidFields.forEach((field, i) => {
+        if (fixedValues[i]) {
+          field.input.value = fixedValues[i];
+          console.log(`Fixed ${field.name}: "${field.value}" → "${fixedValues[i]}"`);
+        }
+      });
+    }
+
+    // Clean up session
+    session.destroy();
+
   } catch (error) {
     console.error('AI error:', error);
-    console.error('AI result was:', result);
     alert('Error using AI: ' + error.message);
   }
 }
