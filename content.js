@@ -237,40 +237,36 @@ async function fillGroup(group, profile) {
     return baseData;
   });
 
-  const prompt = `Fill ${fieldData.length} form fields. Return JSON array with EXACTLY ${fieldData.length} values.
+  const prompt = `Fill ${fieldData.length} form fields using profile data. Return a JSON array with exactly ${fieldData.length} string values.
 
-Profile:
-- Name: "${profile.fullName}"
-- Email: "${profile.email}"
-- Phone: "${profile.phone}"
-- Birth: "${profile.birthDate}"
-- Address: "${profile.address}"
+USER PROFILE:
+Name: ${profile.fullName}
+Email: ${profile.email}
+Phone: ${profile.phone}
+Date of Birth: ${profile.birthDate}
+Address: ${profile.address}
 
-Fields (${fieldData.length} total):
-${fieldData.map((f, i) => `${i + 1}. ${f.name}${f.pattern ? ' pattern:' + f.pattern : ''}${f.type === 'password' ? ' [LEAVE EMPTY]' : ''}`).join('\n')}
+FORM FIELDS:
+${fieldData.map((f, i) => {
+  let desc = `${i + 1}. ${f.name}`;
+  if (f.label) desc += ` - "${f.label}"`;
+  if (f.pattern) desc += ` [must match: ${f.pattern}]`;
+  if (f.type === 'password') desc += ' [password field]';
+  return desc;
+}).join('\n')}
 
-Rules by field type:
-- firstName/firstNameAlt: First part of name (remove apostrophes if pattern requires only letters)
-- middleInitial: Middle initial if exists, else empty
-- lastName/lastNameAlt: Last part of name (remove apostrophes if pattern requires only letters)
-- email/emailAlt: Use email from profile
-- phone/phoneAlt: Format phone as pattern requires (e.g., "(619) 618-8705" or "619-618-8705")
-- countryCode: "+1" from phone
-- areaCode: "619" from phone
-- phoneNumber: Rest of phone with dash if allowed by pattern
-- dob/dobAlt: Format birthDate as pattern requires (e.g., "03/22/1995" for MM/DD/YYYY)
-- dobMonth/dobDay/dobYear: Split birthDate into separate fields
-- address/addressAlt: Street only (no apartment)
-- addressLine1: Street only
-- addressLine2: Apartment/unit only
-- city/cityAlt: City from address
-- state/stateAlt/stateSelect: State code (e.g., "CA")
-- zip/zipMain: First 5 digits of ZIP
-- zipExt: Last 4 digits of ZIP if exists, else empty
-- card1/card2/card3/card4: Leave all empty (no credit card data in profile)
-- password/passwordAlt/confirmPassword/confirmPasswordAlt: Always empty ""
+INSTRUCTIONS:
+- Analyze each field name, label, and pattern to understand what data is needed
+- Extract and format data from the profile to match field requirements
+- For patterns like [A-Za-z]+, remove special characters (O'Reilly → OReilly)
+- For phone patterns, format accordingly: (XXX) XXX-XXXX or XXX-XXX-XXXX
+- For date patterns, convert YYYY-MM-DD to required format (MM/DD/YYYY, etc.)
+- Split data when multiple fields represent one value (first/last name, address parts, etc.)
+- For select dropdowns, choose the matching value
+- Leave password fields and unknown fields empty
+- Return exactly ${fieldData.length} values in order
 
-Return: ["value1","value2",...,"value${fieldData.length}"]`;
+OUTPUT: JSON array with ${fieldData.length} strings`;
 
   try {
     const session = await LanguageModel.create({
