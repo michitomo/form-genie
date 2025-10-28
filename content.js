@@ -13,7 +13,7 @@ const AI_CONFIG = {
   // Configuration for fixing validation errors (slightly more creative)
   FIX: {
     temperature: 1,
-    topK: 20,
+    topK: 50,
   }
 };
 
@@ -33,12 +33,52 @@ style.textContent = `
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    background: rgba(0, 0, 0, 0.8);
-    color: white;
-    padding: 20px;
-    border-radius: 10px;
+    background: rgba(18, 18, 18, 0.9);
+    color: #fff;
+    padding: 16px 18px;
+    border-radius: 12px;
     z-index: 10000;
     display: none;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+    -webkit-backdrop-filter: saturate(150%) blur(2px);
+    backdrop-filter: saturate(150%) blur(2px);
+  }
+  .form-genie-loading .fg-inner {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .form-genie-loading .fg-spinner {
+    width: 18px;
+    height: 18px;
+    border: 2px solid rgba(255,255,255,0.25);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: fg-spin 0.8s linear infinite;
+    flex: 0 0 auto;
+  }
+  .form-genie-loading .fg-label {
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: 0.2px;
+    color: #f5f5f5;
+    display: inline-flex;
+    align-items: baseline;
+  }
+  .form-genie-loading .fg-dot {
+    display: inline-block;
+    width: 4px;
+    margin-left: 2px;
+    opacity: 0;
+    animation: fg-blink 1.4s infinite;
+  }
+  .form-genie-loading .fg-dot.dot2 { animation-delay: 0.2s; }
+  .form-genie-loading .fg-dot.dot3 { animation-delay: 0.4s; }
+  @keyframes fg-spin { to { transform: rotate(360deg); } }
+  @keyframes fg-blink {
+    0%, 20% { opacity: 0; }
+    30%, 60% { opacity: 1; }
+    70%, 100% { opacity: 0; }
   }
 `;
 document.head.appendChild(style);
@@ -80,7 +120,14 @@ async function getUserProfile() {
 function showLoading() {
   const loading = document.createElement('div');
   loading.className = 'form-genie-loading';
-  loading.textContent = 'Form Genie is thinking...';
+  loading.setAttribute('role', 'status');
+  loading.setAttribute('aria-live', 'polite');
+  loading.innerHTML = `
+    <div class="fg-inner">
+      <div class="fg-spinner" aria-hidden="true"></div>
+      <div class="fg-label">Form Genie is thinking<span class="fg-dot dot1">.</span><span class="fg-dot dot2">.</span><span class="fg-dot dot3">.</span></div>
+    </div>
+  `;
   document.body.appendChild(loading);
   loading.style.display = 'block';
   return loading;
@@ -224,37 +271,61 @@ Instructions:
 - Produce the best string value for each field based on profile and metadata.
 - MUST match any regex/pattern exactly (transform profile data as needed: remove punctuation, strip country codes, reformat).
 - Dates: Convert YYYY-MM-DD to requested format (e.g., MM/DD/YYYY).
-- Addresses: Split into street (with apt), city, state, zip for separate fields.
+- Addresses: Split into street, apt, city, state, zip for separate fields.
 - Phones: Follow placeholder/pattern (e.g., (123) 456-7890).
 
 Output: JSON object with exact field names as keys, values as strings (empty if impossible to match pattern).`;
 }
 
 /**
- * Generate fix prompt for validation errors
- * @param {Object[]} invalidFields
- * @param {string[]} fieldNames
- * @param {Object} profile
- * @returns {string}
+ * Generates a precise prompt for an AI to correct invalid fields using profile data.
+ *
+ * @param {Array<Object>} invalidFields - An array of objects representing invalid fields.
+ *   Each object should have `index`, `input` (the DOM element), and `value`.
+ * @param {Array<string>} fieldNames - An array of all possible field names, indexed.
+ * @param {Object} profile - A key-value object containing the user's complete profile data.
+ * @returns {string} A carefully constructed prompt for the AI.
  */
 function generateFixPrompt(invalidFields, fieldNames, profile) {
-  const fieldsToFix = invalidFields.map(field => fieldNames[field.index]);
+  const fieldsToFix = invalidFields.map(f => fieldNames[f.index]);
+
+  // Describe the fields that need correction and their specific rules.
+  const errorDetailLines = invalidFields.map((f, idx) => {
+    const input = f.input;
+    const name = fieldsToFix[idx];
+    
+    const constraints = [];
+    constraints.push(`type=${input.type || input.tagName.toLowerCase()}`);
+    if (input.pattern) constraints.push(`pattern=${input.pattern}`);
+    if (input.maxLength > 0) constraints.push(`maxlength=${input.maxLength}`);
+    if (input.placeholder) constraints.push(`example="${input.placeholder}"`);
+    if (input.required) constraints.push('required');
+    
+    if (input.tagName === 'SELECT') {
+      const opts = Array.from(input.options)
+        .map(o => (o.value || o.textContent || '').trim())
+        .filter(Boolean)
+        .slice(0, 8); // Keep the list short for the model
+      if (opts.length) {
+        constraints.push(`options=[${opts.join('|')}]`);
+      }
+    }
+    
+    // CRITICAL CHANGE: Do not include the invalid value. Just state the rules.
+    return `- ${name}: (${constraints.join(', ')})`;
+  }).join('\n');
+  
   const exampleKey = fieldsToFix[0] || 'fieldName';
 
-  return `Some field values failed validation. Provide corrected values as JSON.
+  // This new prompt template is much more explicit and less ambiguous.
+  return `Your task is to correct field values using the provided profile data. For each field listed under "Fields to Correct", generate a new, valid value that satisfies its constraints. Use the "Profile" object as the source of truth. Output JSON only (no prose).
 
-Fields needing correction (use exact field names as keys in your JSON output):
-${invalidFields.map((f, idx) => `- ${fieldsToFix[idx]}: "${f.value}" failed pattern ${f.pattern || 'n/a'}
-  Error: ${f.validationMessage}, placeholder: "${f.input.placeholder || 'none'}"`).join('\n')}
+Profile: ${JSON.stringify(profile)}
 
-Profile data for reference: ${JSON.stringify(profile)}
+Fields to Correct:
+${errorDetailLines}
 
-Return ONLY a JSON object containing corrected values for these fields. Example:
-{
-  "${exampleKey}": "corrected value"
-}
-
-Remember: match regex constraints (e.g., [A-Za-z]+ means letters only).`;
+Return a JSON object containing only the corrected keys and their new values. Example: {"${exampleKey}":"..."}`;
 }
 
 // ========================================
@@ -339,13 +410,16 @@ function validateFields(fields, values, fieldNames) {
       return;
     }
     
-    // Skip if field is optional and empty
-    if (!input.required && values[index] === '') {
+    const value = values[index];
+    const isEmpty = value === undefined || value === null || (typeof value === 'string' && value.trim() === '');
+
+    // Skip if field is optional and empty-like (undefined/null/empty/whitespace)
+    if (!input.required && isEmpty) {
       return;
     }
-    
-    // Skip fields we intentionally left empty
-    if (values[index] === '') {
+
+    // Skip fields we intentionally left empty (for required fields we still honor the existing behavior)
+    if (typeof value === 'string' && value === '') {
       return;
     }
     
