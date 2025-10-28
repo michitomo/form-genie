@@ -25,11 +25,5 @@
   },
   "background": {
     "service_worker": "background.js"
-  },
-  "web_accessible_resources": [
-    {
-      "resources": ["us-form1.html", "us-form2.html", "jp-form1.html"],
-      "matches": ["<all_urls>"]
-    }
-  ]
+  }
 }

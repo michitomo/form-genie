@@ -41,3 +41,21 @@ By letting Gemini Nano analyzing HTML elements like `<label>`, `placeholder`, an
 *   **Platform:** Google Chrome Extension (Manifest V3)
 *   **Core AI:** Gemini Nano (via Chrome's built-in `Prompt API`)
 *   **Frontend:** JavaScript, HTML, CSS
+
+## Demo Forms
+Sample registration forms are available via GitHub Pages for testing the extension:
+
+- [US Registration Form - Simple](https://michitomo.github.io/form-genie/us-form1.html)
+- [US Registration Form - Complex](https://michitomo.github.io/form-genie/us-form2.html)
+- [Japanese Registration Form](https://michitomo.github.io/form-genie/jp-form1.html)
+
+### Setting up GitHub Pages
+To deploy the demo forms:
+
+1. Go to your repository settings on GitHub
+2. Navigate to "Pages" in the sidebar
+3. Under "Source", select "Deploy from a branch"
+4. Choose the `main` branch and `/ (root)` folder
+5. Click "Save"
+
+The demo forms will be available at `https://[username].github.io/form-genie/`
