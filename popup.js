@@ -6,6 +6,18 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('profile-form').addEventListener('submit', saveProfile);
 });
 
+function showMessage(text, type = 'success') {
+  const messageEl = document.getElementById('message');
+  messageEl.textContent = text;
+  messageEl.className = `message ${type}`;
+  messageEl.style.display = 'block';
+
+  // Auto-hide after 3 seconds
+  setTimeout(() => {
+    messageEl.style.display = 'none';
+  }, 3000);
+}
+
 async function saveProfile(event) {
   event.preventDefault();
   const fullName = document.getElementById('full-name').value;
@@ -16,10 +28,13 @@ async function saveProfile(event) {
 
   const profile = { fullName, email, phone, address, birthDate };
 
-  await chrome.storage.local.set({ profile });
-
-  // Optionally, show a success message or reset form
-  alert('Profile saved!');
+  try {
+    await chrome.storage.local.set({ profile });
+    showMessage('Profile saved successfully!', 'success');
+  } catch (error) {
+    console.error('Error saving profile:', error);
+    showMessage('Failed to save profile. Please try again.', 'error');
+  }
 }
 
 async function loadProfile() {

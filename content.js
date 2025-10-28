@@ -44,21 +44,45 @@ function detectForms() {
 // Add fill button near the form
 function addFillButton(form) {
   const button = document.createElement('button');
-  button.textContent = 'Fill with Form Genie';
+  button.textContent = '✨ Fill with Form Genie';
   button.id = 'form-genie-button';
   button.style.cssText = `
     position: absolute;
-    background: #007bff;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
     border: none;
-    padding: 10px;
-    border-radius: 5px;
+    padding: 12px 20px;
+    border-radius: 8px;
     cursor: pointer;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    transition: all 0.2s ease;
     z-index: 1000;
+    display: flex;
+    align-items: center;
+    gap: 8px;
   `;
+
+  // Add hover effects
+  button.onmouseover = () => {
+    button.style.transform = 'translateY(-2px)';
+    button.style.boxShadow = '0 6px 20px rgba(102, 126, 234, 0.4)';
+  };
+
+  button.onmouseout = () => {
+    button.style.transform = 'translateY(0)';
+    button.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.3)';
+  };
+
+  button.onmousedown = () => {
+    button.style.transform = 'translateY(0)';
+  };
+
   // Position near form
   const rect = form.getBoundingClientRect();
-  button.style.top = `${rect.top - 50}px`;
+  button.style.top = `${rect.top - 60}px`;
   button.style.left = `${rect.left}px`;
   document.body.appendChild(button);
 
