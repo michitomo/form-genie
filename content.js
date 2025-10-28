@@ -221,6 +221,9 @@ async function fillGroup(group, profile) {
     placeholder: input.placeholder,
     name: input.name,
     type: input.type || input.tagName.toLowerCase(),
+    pattern: input.pattern || '',
+    maxlength: input.maxLength > 0 ? input.maxLength : null,
+    title: input.title || '',
     ...(input.tagName === 'SELECT' && {
       options: Array.from(input.options).map(option => ({
         value: option.value,
@@ -229,7 +232,7 @@ async function fillGroup(group, profile) {
     })
   }));
 
-  const prompt = `Profile: ${JSON.stringify(profile)}. Fields to fill: ${JSON.stringify(fieldData)}. Determine the values to fill in each field based on the profile. If fields are related (like parts of a phone number), split the value accordingly. If the fields appear to be for last name and first name (based on field names containing 'lastname', 'firstname', or labels indicating name parts), split the full name from the profile into appropriate parts. For fields that seem to require katakana (based on patterns or placeholders like 'ヤマダ'), convert the name to katakana. Respond with only a valid JSON array of strings, one for each field in the same order. For select fields, choose the most appropriate option from the provided options list based on the profile data. For select fields, use the value of the selected option. Use empty strings for fields that shouldn't be filled. Do not include any other text, explanations, or formatting.`;
+  const prompt = `Profile: ${JSON.stringify(profile)}. Fields to fill: ${JSON.stringify(fieldData)}. Determine the values to fill in each field based on the profile. IMPORTANT: Pay attention to field constraints like 'pattern' (regex pattern the value must match), 'title' (describing requirements), and 'maxlength'. If a field has pattern="[A-Za-z]+" it means ONLY letters are allowed - remove any special characters like apostrophes, hyphens, or accents from names (e.g., O'Reilly → OReilly). If fields are related (like parts of a phone number split into country code, area code, and number), split the value accordingly. If the fields appear to be for last name and first name (based on field names containing 'lastname', 'firstname', or labels indicating name parts), split the full name from the profile into appropriate parts. For fields that seem to require katakana (based on patterns or placeholders like 'ヤマダ'), convert the name to katakana. Respond with only a valid JSON array of strings, one for each field in the same order. For select fields, choose the most appropriate option from the provided options list based on the profile data. For select fields, use the value of the selected option. Use empty strings for fields that shouldn't be filled. Do not include any other text, explanations, or formatting.`;
 
   try {
     const session = await LanguageModel.create({

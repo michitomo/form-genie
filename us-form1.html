@@ -29,11 +29,11 @@
         <p class="subtitle">Please fill out all fields carefully</p>
         <form id="registrationForm">
             <label for="firstName">First Name:</label>
-            <input type="text" id="firstName" name="firstName" pattern="[A-Za-z]+" title="Letters only, no special characters" required>
+            <input type="text" id="firstName" name="firstName" pattern="[A-Za-z]+" title="Only letters allowed - no special characters, apostrophes, or hyphens" placeholder="John" required>
             <div class="note">Letters only, no special characters</div>
 
             <label for="lastName">Last Name:</label>
-            <input type="text" id="lastName" name="lastName" pattern="[A-Za-z]+" title="Letters only, no special characters" required>
+            <input type="text" id="lastName" name="lastName" pattern="[A-Za-z]+" title="Only letters allowed - no apostrophes or hyphens (e.g., O'Reilly should be entered as OReilly)" placeholder="Smith" required>
             <div class="note">No apostrophes or hyphens allowed</div>
 
             <label for="email">Email Address:</label>
