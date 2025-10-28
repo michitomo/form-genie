@@ -237,36 +237,37 @@ async function fillGroup(group, profile) {
     return baseData;
   });
 
-  const prompt = `Fill ${fieldData.length} form fields using profile data. Return a JSON array with exactly ${fieldData.length} string values.
+  const prompt = `You are filling out a web form. You must return EXACTLY ${fieldData.length} values, one for each field.
 
-USER PROFILE:
+PROFILE DATA:
 Name: ${profile.fullName}
 Email: ${profile.email}
 Phone: ${profile.phone}
-Date of Birth: ${profile.birthDate}
+Birth: ${profile.birthDate}
 Address: ${profile.address}
 
-FORM FIELDS:
+FORM FIELDS (count: ${fieldData.length}):
 ${fieldData.map((f, i) => {
   let desc = `${i + 1}. ${f.name}`;
-  if (f.label) desc += ` - "${f.label}"`;
-  if (f.pattern) desc += ` [must match: ${f.pattern}]`;
-  if (f.type === 'password') desc += ' [password field]';
+  if (f.label) desc += ` (${f.label})`;
+  if (f.pattern) desc += ` [pattern: ${f.pattern}]`;
+  if (f.type === 'password') desc += ' [PASSWORD]';
   return desc;
 }).join('\n')}
 
-INSTRUCTIONS:
-- Analyze each field name, label, and pattern to understand what data is needed
-- Extract and format data from the profile to match field requirements
-- For patterns like [A-Za-z]+, remove special characters (O'Reilly → OReilly)
-- For phone patterns, format accordingly: (XXX) XXX-XXXX or XXX-XXX-XXXX
-- For date patterns, convert YYYY-MM-DD to required format (MM/DD/YYYY, etc.)
-- Split data when multiple fields represent one value (first/last name, address parts, etc.)
-- For select dropdowns, choose the matching value
-- Leave password fields and unknown fields empty
-- Return exactly ${fieldData.length} values in order
+RULES:
+1. Analyze field names and patterns to understand what data is needed
+2. Extract and format data from profile to match requirements
+3. If pattern allows only letters [A-Za-z]+, remove apostrophes and hyphens
+4. Format phone numbers to match pattern (e.g., (619) 618-8705 or 619-618-8705)
+5. Format dates to match pattern (e.g., 03/22/1995 for MM/DD/YYYY)
+6. Split combined data when needed (firstName/middleInitial/lastName, street/apartment, zip/zipExt)
+7. For select fields, return the appropriate value
+8. Leave PASSWORD fields empty
+9. Leave fields empty if no matching data in profile (e.g., credit card fields)
 
-OUTPUT: JSON array with ${fieldData.length} strings`;
+CRITICAL: Return JSON array with EXACTLY ${fieldData.length} string values, one per field in order.
+Count verification: You listed ${fieldData.length} fields above, so return ${fieldData.length} values.`;
 
   try {
     const session = await LanguageModel.create({
