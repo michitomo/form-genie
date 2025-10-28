@@ -237,38 +237,40 @@ async function fillGroup(group, profile) {
     return baseData;
   });
 
-  const prompt = `You must fill a form with ${fieldData.length} fields. Return a JSON array with EXACTLY ${fieldData.length} values.
+  const prompt = `Fill ${fieldData.length} form fields. Return JSON array with EXACTLY ${fieldData.length} values.
 
 Profile:
-- fullName: "${profile.fullName}"
-- email: "${profile.email}"
-- phone: "${profile.phone}"
-- birthDate: "${profile.birthDate}"
-- address: "${profile.address}"
+- Name: "${profile.fullName}"
+- Email: "${profile.email}"
+- Phone: "${profile.phone}"
+- Birth: "${profile.birthDate}"
+- Address: "${profile.address}"
 
 Fields (${fieldData.length} total):
-${fieldData.map((f, i) => `${i + 1}. ${f.name}${f.pattern ? ' (pattern:' + f.pattern + ')' : ''}${f.type === 'password' ? ' [PASSWORD - LEAVE EMPTY]' : ''}`).join('\n')}
+${fieldData.map((f, i) => `${i + 1}. ${f.name}${f.pattern ? ' pattern:' + f.pattern : ''}${f.type === 'password' ? ' [LEAVE EMPTY]' : ''}`).join('\n')}
 
-Instructions for EACH field:
-Field 1 (firstName): Extract "Michi" from fullName. If pattern [A-Za-z]+, remove non-letters.
-Field 2 (lastName): Extract "O'Reilly" from fullName. If pattern [A-Za-z]+, remove apostrophe → "OReilly"
-Field 3 (email): Use email value
-Field 4 (countryCode): Extract "+1" from phone
-Field 5 (areaCode): Extract "619" from phone
-Field 6 (phoneNumber): Extract "618-8705" from phone (with dash if pattern allows)
-Field 7 (dobMonth): Extract month "03" from birthDate
-Field 8 (dobDay): Extract day "22" from birthDate
-Field 9 (dobYear): Extract year "1995" from birthDate
-Field 10 (addressLine1): Extract street "1531 Hyde St" from address (NO apartment)
-Field 11 (addressLine2): Extract apartment "Apt 19" from address
-Field 12 (city): Extract "San Francisco" from address
-Field 13 (state): Extract "CA" from address
-Field 14 (zip): Extract "94109" from address
-Field 15 (password): Empty string ""
-Field 16 (confirmPassword): Empty string ""
+Rules by field type:
+- firstName/firstNameAlt: First part of name (remove apostrophes if pattern requires only letters)
+- middleInitial: Middle initial if exists, else empty
+- lastName/lastNameAlt: Last part of name (remove apostrophes if pattern requires only letters)
+- email/emailAlt: Use email from profile
+- phone/phoneAlt: Format phone as pattern requires (e.g., "(619) 618-8705" or "619-618-8705")
+- countryCode: "+1" from phone
+- areaCode: "619" from phone
+- phoneNumber: Rest of phone with dash if allowed by pattern
+- dob/dobAlt: Format birthDate as pattern requires (e.g., "03/22/1995" for MM/DD/YYYY)
+- dobMonth/dobDay/dobYear: Split birthDate into separate fields
+- address/addressAlt: Street only (no apartment)
+- addressLine1: Street only
+- addressLine2: Apartment/unit only
+- city/cityAlt: City from address
+- state/stateAlt/stateSelect: State code (e.g., "CA")
+- zip/zipMain: First 5 digits of ZIP
+- zipExt: Last 4 digits of ZIP if exists, else empty
+- card1/card2/card3/card4: Leave all empty (no credit card data in profile)
+- password/passwordAlt/confirmPassword/confirmPasswordAlt: Always empty ""
 
-Return format: JSON array with ${fieldData.length} strings
-Example: ["Michi","OReilly","michitomo@gmail.com","+1","619","618-8705","03","22","1995","1531 Hyde St","Apt 19","San Francisco","CA","94109","",""]`;
+Return: ["value1","value2",...,"value${fieldData.length}"]`;
 
   try {
     const session = await LanguageModel.create({
