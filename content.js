@@ -237,37 +237,44 @@ async function fillGroup(group, profile) {
     return baseData;
   });
 
-  const prompt = `You are filling out a web form. You must return EXACTLY ${fieldData.length} values, one for each field.
+  const prompt = `Fill out a web form with ${fieldData.length} fields using the profile data below.
 
-PROFILE DATA:
+PROFILE:
 Name: ${profile.fullName}
 Email: ${profile.email}
 Phone: ${profile.phone}
 Birth: ${profile.birthDate}
 Address: ${profile.address}
 
-FORM FIELDS (count: ${fieldData.length}):
+FIELDS:
 ${fieldData.map((f, i) => {
   let desc = `${i + 1}. ${f.name}`;
   if (f.label) desc += ` (${f.label})`;
   if (f.pattern) desc += ` [pattern: ${f.pattern}]`;
-  if (f.type === 'password') desc += ' [PASSWORD]';
+  if (f.type === 'password') desc += ' [PASSWORD - EMPTY]';
   return desc;
 }).join('\n')}
 
-RULES:
-1. Analyze field names and patterns to understand what data is needed
-2. Extract and format data from profile to match requirements
-3. If pattern allows only letters [A-Za-z]+, remove apostrophes and hyphens
-4. Format phone numbers to match pattern (e.g., (619) 618-8705 or 619-618-8705)
-5. Format dates to match pattern (e.g., 03/22/1995 for MM/DD/YYYY)
-6. Split combined data when needed (firstName/middleInitial/lastName, street/apartment, zip/zipExt)
-7. For select fields, return the appropriate value
-8. Leave PASSWORD fields empty
-9. Leave fields empty if no matching data in profile (e.g., credit card fields)
+GUIDELINES:
+- Understand what each field needs from its name, label, and pattern
+- Remove apostrophes/hyphens if pattern is [A-Za-z]+ (letters only)
+- Format phone to match pattern: (XXX) XXX-XXXX or split into parts
+- Format dates to match pattern: MM/DD/YYYY or split into month/day/year
+- Parse address into components (street, apartment, city, state, zip)
+- Leave passwords and credit cards empty
+- Leave fields empty if no matching data
 
-CRITICAL: Return JSON array with EXACTLY ${fieldData.length} string values, one per field in order.
-Count verification: You listed ${fieldData.length} fields above, so return ${fieldData.length} values.`;
+IMPORTANT: Return a JSON array with one value for EACH field listed above:
+[
+  "${fieldData[0]?.name}",  // value for field 1
+  "${fieldData[1]?.name}",  // value for field 2
+  "${fieldData[2]?.name}",  // value for field 3
+  ... ${fieldData.length - 3} more values ...
+  "${fieldData[fieldData.length - 2]?.name}",  // value for field ${fieldData.length - 1}
+  "${fieldData[fieldData.length - 1]?.name}"   // value for field ${fieldData.length}
+]
+
+Total: ${fieldData.length} values`;
 
   try {
     const session = await LanguageModel.create({
