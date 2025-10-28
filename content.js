@@ -106,11 +106,9 @@ async function fillForm(form) {
   loading.style.display = 'block';
 
   const inputs = Array.from(form.querySelectorAll('input, textarea, select'));
-  const groups = groupFields(inputs);
-
-  for (const group of groups) {
-    await fillGroup(group, profile);
-  }
+  
+  // Process all fields at once instead of grouping
+  await fillGroup(inputs, profile);
 
   // Hide loading
   loading.style.display = 'none';
@@ -182,11 +180,8 @@ async function fillFormInputs(inputs) {
   document.body.appendChild(loading);
   loading.style.display = 'block';
 
-  const groups = groupFields(inputs);
-
-  for (const group of groups) {
-    await fillGroup(group, profile);
-  }
+  // Process all fields at once
+  await fillGroup(inputs, profile);
 
   // Hide loading
   loading.style.display = 'none';
@@ -218,8 +213,8 @@ function groupFields(inputs) {
 async function fillGroup(group, profile) {
   const fieldData = group.map(input => ({
     label: getLabelForInput(input),
-    placeholder: input.placeholder,
-    name: input.name,
+    placeholder: input.placeholder || '',
+    name: input.name || '',
     type: input.type || input.tagName.toLowerCase(),
     pattern: input.pattern || '',
     maxlength: input.maxLength > 0 ? input.maxLength : null,
@@ -232,12 +227,34 @@ async function fillGroup(group, profile) {
     })
   }));
 
-  const prompt = `Profile: ${JSON.stringify(profile)}. Fields to fill: ${JSON.stringify(fieldData)}. Determine the values to fill in each field based on the profile. IMPORTANT: Pay attention to field constraints like 'pattern' (regex pattern the value must match), 'title' (describing requirements), and 'maxlength'. If a field has pattern="[A-Za-z]+" it means ONLY letters are allowed - remove any special characters like apostrophes, hyphens, or accents from names (e.g., O'Reilly → OReilly). If fields are related (like parts of a phone number split into country code, area code, and number), split the value accordingly. If the fields appear to be for last name and first name (based on field names containing 'lastname', 'firstname', or labels indicating name parts), split the full name from the profile into appropriate parts. For fields that seem to require katakana (based on patterns or placeholders like 'ヤマダ'), convert the name to katakana. Respond with only a valid JSON array of strings, one for each field in the same order. For select fields, choose the most appropriate option from the provided options list based on the profile data. For select fields, use the value of the selected option. Use empty strings for fields that shouldn't be filled. Do not include any other text, explanations, or formatting.`;
+  const prompt = `You are a form-filling assistant. Fill out the following form fields based on the user's profile.
+
+Profile: ${JSON.stringify(profile)}
+
+Fields to fill: ${JSON.stringify(fieldData, null, 2)}
+
+Instructions:
+1. CRITICAL: Return EXACTLY ONE value for EACH field in the SAME ORDER as the fields array above. The number of values in your response MUST equal ${fieldData.length}.
+2. Pay attention to field constraints:
+   - 'pattern': Regular expression the value must match. If pattern="[A-Za-z]+" then ONLY letters are allowed - remove apostrophes, hyphens, etc. (O'Reilly → OReilly)
+   - 'title': Additional requirements or hints
+   - 'maxlength': Maximum characters allowed
+3. For phone number fields split across multiple inputs (countryCode, areaCode, phoneNumber), extract the appropriate part from the full phone number.
+4. For name fields (firstName, lastName), split the fullName appropriately. Remove special characters if the pattern requires it.
+5. For date fields (dobMonth, dobDay, dobYear), extract from birthDate in the profile.
+6. For address fields split across multiple inputs, parse the full address appropriately.
+7. For SELECT fields, choose the most appropriate option VALUE from the options list.
+8. For password fields, leave empty ("") as we don't auto-fill passwords.
+9. If unsure about a field, use an empty string ("").
+
+Response format: Return ONLY a valid JSON array of ${fieldData.length} strings, one for each field in order. No explanations, no extra text.
+
+Example: ["value1", "value2", "value3"]`;
 
   try {
     const session = await LanguageModel.create({
-        temperature: 1,
-        topK: 3,
+        temperature: 0.3,
+        topK: 1,
     });
     const result = await session.prompt(prompt);
     console.log('AI prompt:', prompt);
@@ -245,6 +262,13 @@ async function fillGroup(group, profile) {
     const cleanedResult = extractJSON(result.trim());
     console.log('Cleaned result:', cleanedResult);
     const values = JSON.parse(cleanedResult);
+
+    // Validate that we got the right number of values
+    if (values.length !== group.length) {
+      console.error(`Expected ${group.length} values but got ${values.length}`);
+      alert(`Form filling error: Expected ${group.length} values but AI returned ${values.length}`);
+      return;
+    }
 
     group.forEach((input, index) => {
       if (values[index]) {
