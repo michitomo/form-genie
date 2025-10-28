@@ -227,33 +227,44 @@ async function fillGroup(group, profile) {
     })
   }));
 
-  const prompt = `You are a form-filling assistant. Fill out the following form fields based on the user's profile.
+  const prompt = `You are a form-filling assistant. Fill out form fields based on the user's profile.
 
-Profile: ${JSON.stringify(profile)}
+USER PROFILE:
+${JSON.stringify(profile)}
 
-Fields to fill: ${JSON.stringify(fieldData, null, 2)}
+FORM FIELDS (${fieldData.length} fields):
+${fieldData.map((f, i) => `${i + 1}. ${f.name || 'field' + i} (${f.type}): label="${f.label}" placeholder="${f.placeholder}" pattern="${f.pattern}" title="${f.title}"`).join('\n')}
 
-Instructions:
-1. CRITICAL: Return EXACTLY ONE value for EACH field in the SAME ORDER as the fields array above. The number of values in your response MUST equal ${fieldData.length}.
-2. Pay attention to field constraints:
-   - 'pattern': Regular expression the value must match. If pattern="[A-Za-z]+" then ONLY letters are allowed - remove apostrophes, hyphens, etc. (O'Reilly → OReilly)
-   - 'title': Additional requirements or hints
-   - 'maxlength': Maximum characters allowed
-3. For phone number fields split across multiple inputs (countryCode, areaCode, phoneNumber), extract the appropriate part from the full phone number.
-4. For name fields (firstName, lastName), split the fullName appropriately. Remove special characters if the pattern requires it.
-5. For date fields (dobMonth, dobDay, dobYear), extract from birthDate in the profile.
-6. For address fields split across multiple inputs, parse the full address appropriately.
-7. For SELECT fields, choose the most appropriate option VALUE from the options list.
-8. For password fields, leave empty ("") as we don't auto-fill passwords.
-9. If unsure about a field, use an empty string ("").
+CRITICAL RULES:
+1. You MUST return EXACTLY ${fieldData.length} values in a JSON array
+2. Each value corresponds to one field in the order listed above
+3. Count carefully: there are ${fieldData.length} fields, so you need ${fieldData.length} values
 
-Response format: Return ONLY a valid JSON array of ${fieldData.length} strings, one for each field in order. No explanations, no extra text.
+FIELD-SPECIFIC INSTRUCTIONS:
+- firstName/lastName: Split fullName "${profile.fullName}". If pattern="[A-Za-z]+" remove all non-letter characters (O'Reilly → OReilly)
+- email: Use email from profile
+- countryCode: Extract country code from phone (e.g., "+1")
+- areaCode: Extract area code from phone (e.g., "619")
+- phoneNumber: Extract rest of phone formatted as needed (e.g., "618-8705")
+- dobMonth: Extract month from birthDate as 2-digit value (e.g., "03")
+- dobDay: Extract day from birthDate as 2-digit value (e.g., "22")
+- dobYear: Extract year from birthDate as 4-digit value (e.g., "1995")
+- addressLine1: Street address without apartment
+- addressLine2: Apartment/suite number only
+- city: City name
+- state: State abbreviation (e.g., "CA")
+- zip: ZIP code (5 digits)
+- password/confirmPassword: Leave as empty string ""
 
-Example: ["value1", "value2", "value3"]`;
+For SELECT fields, return the VALUE (not text) that matches. Check the options list carefully.
+
+RESPONSE FORMAT:
+Return ONLY a JSON array with EXACTLY ${fieldData.length} string values. No explanations, no markdown, no extra text.
+Correct format: ["value1", "value2", ..., "value${fieldData.length}"]`;
 
   try {
     const session = await LanguageModel.create({
-        temperature: 0.3,
+        temperature: 0.1,
         topK: 1,
     });
     const result = await session.prompt(prompt);
@@ -266,7 +277,9 @@ Example: ["value1", "value2", "value3"]`;
     // Validate that we got the right number of values
     if (values.length !== group.length) {
       console.error(`Expected ${group.length} values but got ${values.length}`);
-      alert(`Form filling error: Expected ${group.length} values but AI returned ${values.length}`);
+      console.error('Field names:', group.map(input => input.name || input.id));
+      console.error('Values received:', values);
+      alert(`Form filling error: Expected ${group.length} values but AI returned ${values.length}. Please check console for details.`);
       return;
     }
 
