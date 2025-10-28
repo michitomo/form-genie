@@ -237,37 +237,38 @@ async function fillGroup(group, profile) {
     return baseData;
   });
 
-  const prompt = `Fill ${fieldData.length} form fields with data from user profile.
+  const prompt = `You must fill a form with ${fieldData.length} fields. Return a JSON array with EXACTLY ${fieldData.length} values.
 
-PROFILE DATA:
-Name: ${profile.fullName}
-Email: ${profile.email}
-Phone: ${profile.phone}
-Birth: ${profile.birthDate}
-Address: ${profile.address}
+Profile:
+- fullName: "${profile.fullName}"
+- email: "${profile.email}"
+- phone: "${profile.phone}"
+- birthDate: "${profile.birthDate}"
+- address: "${profile.address}"
 
-FIELDS TO FILL (total count: ${fieldData.length}):
-${fieldData.map((f, i) => {
-  let line = `${i + 1}. ${f.name}`;
-  if (f.label) line += ` - "${f.label}"`;
-  if (f.pattern) line += ` [pattern:${f.pattern}]`;
-  if (f.type === 'password') line += ' → LEAVE EMPTY';
-  return line;
-}).join('\n')}
+Fields (${fieldData.length} total):
+${fieldData.map((f, i) => `${i + 1}. ${f.name}${f.pattern ? ' (pattern:' + f.pattern + ')' : ''}${f.type === 'password' ? ' [PASSWORD - LEAVE EMPTY]' : ''}`).join('\n')}
 
-CRITICAL: You must return EXACTLY ${fieldData.length} values. Count the fields above: there are ${fieldData.length} numbered items.
+Instructions for EACH field:
+Field 1 (firstName): Extract "Michi" from fullName. If pattern [A-Za-z]+, remove non-letters.
+Field 2 (lastName): Extract "O'Reilly" from fullName. If pattern [A-Za-z]+, remove apostrophe → "OReilly"
+Field 3 (email): Use email value
+Field 4 (countryCode): Extract "+1" from phone
+Field 5 (areaCode): Extract "619" from phone
+Field 6 (phoneNumber): Extract "618-8705" from phone (with dash if pattern allows)
+Field 7 (dobMonth): Extract month "03" from birthDate
+Field 8 (dobDay): Extract day "22" from birthDate
+Field 9 (dobYear): Extract year "1995" from birthDate
+Field 10 (addressLine1): Extract street "1531 Hyde St" from address (NO apartment)
+Field 11 (addressLine2): Extract apartment "Apt 19" from address
+Field 12 (city): Extract "San Francisco" from address
+Field 13 (state): Extract "CA" from address
+Field 14 (zip): Extract "94109" from address
+Field 15 (password): Empty string ""
+Field 16 (confirmPassword): Empty string ""
 
-FILLING RULES:
-1-2. firstName, lastName: Split "${profile.fullName}". Remove apostrophes if pattern is [A-Za-z]+
-3. email: "${profile.email}"
-4-6. countryCode, areaCode, phoneNumber: Split "${profile.phone}" → ["+1", "619", "618-8705"]
-7-9. dobMonth, dobDay, dobYear: Split "${profile.birthDate}" → ["03", "22", "1995"]
-10-11. addressLine1, addressLine2: Split address into street and apartment
-12-14. city, state, zip: Parse from address
-15-16. password, confirmPassword: Both EMPTY "" (never fill passwords)
-
-Return JSON array: ["value1", "value2", ..., "value${fieldData.length}"]
-Total values to return: ${fieldData.length}`;
+Return format: JSON array with ${fieldData.length} strings
+Example: ["Michi","OReilly","michitomo@gmail.com","+1","619","618-8705","03","22","1995","1531 Hyde St","Apt 19","San Francisco","CA","94109","",""]`;
 
   try {
     const session = await LanguageModel.create({
