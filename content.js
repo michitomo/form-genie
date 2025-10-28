@@ -378,10 +378,10 @@ Do not include any extra commentary or explanations.`;
     // If there are validation errors, try to fix them
     if (invalidFields.length > 0) {
       console.log('Validation errors detected:', invalidFields);
-  const fieldsToFix = invalidFields.map(field => fieldNames[field.index]);
-  const exampleKey = fieldsToFix[0] || 'fieldName';
-      
-  const fixPrompt = `Some field values failed validation. Provide corrected values as JSON.
+      const fieldsToFix = invalidFields.map(field => fieldNames[field.index]);
+      const exampleKey = fieldsToFix[0] || 'fieldName';
+
+      const fixPrompt = `Some field values failed validation. Provide corrected values as JSON.
 
 Fields needing correction (use exact field names as keys in your JSON output):
 ${invalidFields.map((f, idx) => `- ${fieldsToFix[idx]}: "${f.value}" failed pattern ${f.pattern || 'n/a'}
@@ -429,9 +429,9 @@ Remember: match regex constraints (e.g., [A-Za-z]+ means letters only).`;
 // Extract JSON from AI response, handling markdown formatting
 function extractJSON(text) {
   // Remove markdown code blocks if present
-  const jsonMatch = text.match(/```(?:json)?\s*(\[.*\])\s*```/s);
+  const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
   if (jsonMatch) {
-    return jsonMatch[1];
+    return jsonMatch[1].trim();
   }
   // If no markdown, assume it's plain JSON
   return text;
