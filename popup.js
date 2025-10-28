@@ -4,6 +4,11 @@ document.addEventListener('DOMContentLoaded', () => {
   loadProfile();
 
   document.getElementById('profile-form').addEventListener('submit', saveProfile);
+
+  // Add event listeners for sample form links
+  document.querySelectorAll('.sample-link').forEach(button => {
+    button.addEventListener('click', openSampleForm);
+  });
 });
 
 function showMessage(text, type = 'success') {
@@ -44,4 +49,16 @@ async function loadProfile() {
   document.getElementById('phone').value = profile.phone || '';
   document.getElementById('address').value = profile.address || '';
   document.getElementById('birth-date').value = profile.birthDate || '';
+}
+
+async function openSampleForm(event) {
+  const url = event.target.getAttribute('data-url');
+  const fullUrl = chrome.runtime.getURL(url);
+  
+  try {
+    await chrome.tabs.create({ url: fullUrl });
+  } catch (error) {
+    console.error('Error opening sample form:', error);
+    showMessage('Failed to open sample form. Please try again.', 'error');
+  }
 }

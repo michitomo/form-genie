@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>日本 登録フォーム</title>
+    <style>
+        body { font-family: 'MS Gothic', sans-serif; margin: 20px; }
+        form { max-width: 400px; margin: auto; }
+        label { display: block; margin-top: 10px; }
+        input { width: 100%; padding: 8px; margin-top: 5px; }
+        button { margin-top: 20px; padding: 10px; background: #007bff; color: white; border: none; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>会員登録</h1>
+    <form id="registrationForm">
+        <label for="kanjiName">お名前（漢字）:</label>
+        <input type="text" id="kanjiName" name="kanjiName" placeholder="山田 太郎" required>
+
+        <label for="kanaName">お名前（カナ）:</label>
+        <input type="text" id="kanaName" name="kanaName" placeholder="ヤマダ タロウ" required>
+
+        <label for="postalCode">郵便番号:</label>
+        <input type="text" id="postalCode" name="postalCode" placeholder="123-4567" required>
+
+        <label for="prefecture">都道府県:</label>
+        <input type="text" id="prefecture" name="prefecture" placeholder="東京都" required>
+
+        <label for="city">市区町村:</label>
+        <input type="text" id="city" name="city" placeholder="渋谷区" required>
+
+        <label for="address">住所:</label>
+        <input type="text" id="address" name="address" placeholder="神南1-1-1" required>
+
+        <label for="phone">電話番号:</label>
+        <input type="tel" id="phone" name="phone" placeholder="03-1234-5678" required>
+
+        <label for="email">メールアドレス:</label>
+        <input type="email" id="email" name="email" required>
+
+        <label for="password">パスワード:</label>
+        <input type="password" id="password" name="password" required>
+
+        <label for="confirmPassword">パスワード確認:</label>
+        <input type="password" id="confirmPassword" name="confirmPassword" required>
+
+        <button type="submit">登録</button>
+    </form>
+</body>
+</html>
