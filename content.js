@@ -211,56 +211,55 @@ function groupFields(inputs) {
 
 // Fill a group of fields
 async function fillGroup(group, profile) {
-  const fieldData = group.map(input => ({
-    label: getLabelForInput(input),
-    placeholder: input.placeholder || '',
-    name: input.name || '',
-    type: input.type || input.tagName.toLowerCase(),
-    pattern: input.pattern || '',
-    maxlength: input.maxLength > 0 ? input.maxLength : null,
-    title: input.title || '',
-    ...(input.tagName === 'SELECT' && {
-      options: Array.from(input.options).map(option => ({
-        value: option.value,
-        text: option.textContent.trim()
-      }))
-    })
-  }));
+  const fieldData = group.map(input => {
+    const baseData = {
+      label: getLabelForInput(input),
+      placeholder: input.placeholder || '',
+      name: input.name || '',
+      type: input.type || input.tagName.toLowerCase(),
+      pattern: input.pattern || '',
+      maxlength: input.maxLength > 0 ? input.maxLength : null,
+      title: input.title || ''
+    };
+    
+    // For select fields, only include a hint about what to choose, not all options
+    if (input.tagName === 'SELECT') {
+      const optionCount = input.options.length;
+      baseData.selectType = `select with ${optionCount} options`;
+      // Only include sample of available values
+      if (optionCount > 5) {
+        baseData.sampleOptions = Array.from(input.options).slice(0, 3).map(opt => opt.value).join(', ') + '...';
+      } else {
+        baseData.availableValues = Array.from(input.options).map(opt => opt.value);
+      }
+    }
+    
+    return baseData;
+  });
 
-  const prompt = `You are a form-filling assistant. Fill out form fields based on the user's profile.
+  const prompt = `Fill ${fieldData.length} form fields with data from user profile.
 
-USER PROFILE:
-${JSON.stringify(profile)}
+PROFILE DATA:
+Name: ${profile.fullName}
+Email: ${profile.email}
+Phone: ${profile.phone}
+Birth: ${profile.birthDate}
+Address: ${profile.address}
 
-FORM FIELDS (${fieldData.length} fields):
-${fieldData.map((f, i) => `${i + 1}. ${f.name || 'field' + i} (${f.type}): label="${f.label}" placeholder="${f.placeholder}" pattern="${f.pattern}" title="${f.title}"`).join('\n')}
+FIELDS TO FILL (return ${fieldData.length} values in this exact order):
+${fieldData.map((f, i) => `${i + 1}. ${f.name}${f.label ? ' (' + f.label + ')' : ''}${f.pattern ? ' [pattern:' + f.pattern + ']' : ''}`).join('\n')}
 
-CRITICAL RULES:
-1. You MUST return EXACTLY ${fieldData.length} values in a JSON array
-2. Each value corresponds to one field in the order listed above
-3. Count carefully: there are ${fieldData.length} fields, so you need ${fieldData.length} values
+RULES:
+- Return JSON array with EXACTLY ${fieldData.length} string values
+- firstName/lastName: Split name, remove apostrophes/hyphens if pattern is [A-Za-z]+
+- countryCode/areaCode/phoneNumber: Split phone "+1 619 618 8705" → ["+1", "619", "618-8705"]
+- dobMonth/dobDay/dobYear: Split birthDate "1995-03-22" → ["03", "22", "1995"]
+- addressLine1: Street only (no apartment)
+- addressLine2: Apartment/unit only (e.g., "Apt 19")
+- city/state/zip: Parse from address
+- password fields: Empty string ""
 
-FIELD-SPECIFIC INSTRUCTIONS:
-- firstName/lastName: Split fullName "${profile.fullName}". If pattern="[A-Za-z]+" remove all non-letter characters (O'Reilly → OReilly)
-- email: Use email from profile
-- countryCode: Extract country code from phone (e.g., "+1")
-- areaCode: Extract area code from phone (e.g., "619")
-- phoneNumber: Extract rest of phone formatted as needed (e.g., "618-8705")
-- dobMonth: Extract month from birthDate as 2-digit value (e.g., "03")
-- dobDay: Extract day from birthDate as 2-digit value (e.g., "22")
-- dobYear: Extract year from birthDate as 4-digit value (e.g., "1995")
-- addressLine1: Street address without apartment
-- addressLine2: Apartment/suite number only
-- city: City name
-- state: State abbreviation (e.g., "CA")
-- zip: ZIP code (5 digits)
-- password/confirmPassword: Leave as empty string ""
-
-For SELECT fields, return the VALUE (not text) that matches. Check the options list carefully.
-
-RESPONSE FORMAT:
-Return ONLY a JSON array with EXACTLY ${fieldData.length} string values. No explanations, no markdown, no extra text.
-Correct format: ["value1", "value2", ..., "value${fieldData.length}"]`;
+Output format: ["val1","val2",...,"val${fieldData.length}"]`;
 
   try {
     const session = await LanguageModel.create({
