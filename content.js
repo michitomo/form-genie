@@ -261,24 +261,14 @@ Field Metadata:
 ${fieldSummary}
 
 Instructions:
-- For each field above, produce the correct string value based on the profile and metadata
-- Respect regex patterns (e.g., [A-Za-z]+ means remove apostrophes/hyphens)
-- Format phone numbers to match patterns, splitting into parts when multiple phone fields exist
-- Format dates to match patterns (convert YYYY-MM-DD as needed)
-- Split addresses into street, apartment, city, state, zip when required
-- Leave passwords, credit card segments, or unknown fields as empty strings
-- Provide a value for every listed field, even if empty
+- Produce the best string value for each field based on profile and metadata.
+- MUST match any regex/pattern exactly (transform profile data as needed: remove punctuation, strip country codes, reformat).
+- Dates: Convert YYYY-MM-DD to requested format (e.g., MM/DD/YYYY).
+- Addresses: Split into street (with apt), city, state, zip for separate fields.
+- Phones: Follow placeholder/pattern (e.g., (123) 456-7890).
+- Passwords/credit cards: Leave empty.
 
-Output:
-Return ONLY a JSON object where each key is one of the field names listed above and each value is the string to fill. Example format (keys must match exactly):
-{
-  "${fieldNames[0]}": "value for ${fieldNames[0]}",
-  "${fieldNames[1]}": "value for ${fieldNames[1]}",
-  ...
-  "${fieldNames[fieldNames.length - 1]}": "value for ${fieldNames[fieldNames.length - 1]}"
-}
-
-Do not include any extra commentary or explanations.`;
+Output: JSON object with exact field names as keys, values as strings (empty if impossible to match pattern).`;
 
   try {
     const session = await LanguageModel.create({
