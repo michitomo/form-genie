@@ -246,22 +246,28 @@ Phone: ${profile.phone}
 Birth: ${profile.birthDate}
 Address: ${profile.address}
 
-FIELDS TO FILL (return ${fieldData.length} values in this exact order):
-${fieldData.map((f, i) => `${i + 1}. ${f.name}${f.label ? ' (' + f.label + ')' : ''}${f.pattern ? ' [pattern:' + f.pattern + ']' : ''}`).join('\n')}
+FIELDS TO FILL (total count: ${fieldData.length}):
+${fieldData.map((f, i) => {
+  let line = `${i + 1}. ${f.name}`;
+  if (f.label) line += ` - "${f.label}"`;
+  if (f.pattern) line += ` [pattern:${f.pattern}]`;
+  if (f.type === 'password') line += ' → LEAVE EMPTY';
+  return line;
+}).join('\n')}
 
-RULES:
-- Return JSON array with EXACTLY ${fieldData.length} string values
-- firstName/lastName: Split name, remove apostrophes/hyphens if pattern is [A-Za-z]+
-- countryCode/areaCode/phoneNumber: Split phone "+1 619 618 8705" → ["+1", "619", "618-8705"]
-- dobMonth/dobDay/dobYear: Split birthDate "1995-03-22" → ["03", "22", "1995"]
-- addressLine1: Street only (no apartment)
-- addressLine2: Apartment/unit only (e.g., "Apt 19")
-- city/state/zip: Parse from address
-- password fields: ALWAYS empty string ""
-- referral codes or fields with no data in profile: ALWAYS empty string ""
-- If you don't have the data for a field, use empty string ""
+CRITICAL: You must return EXACTLY ${fieldData.length} values. Count the fields above: there are ${fieldData.length} numbered items.
 
-Output format: ["val1","val2",...,"val${fieldData.length}"]`;
+FILLING RULES:
+1-2. firstName, lastName: Split "${profile.fullName}". Remove apostrophes if pattern is [A-Za-z]+
+3. email: "${profile.email}"
+4-6. countryCode, areaCode, phoneNumber: Split "${profile.phone}" → ["+1", "619", "618-8705"]
+7-9. dobMonth, dobDay, dobYear: Split "${profile.birthDate}" → ["03", "22", "1995"]
+10-11. addressLine1, addressLine2: Split address into street and apartment
+12-14. city, state, zip: Parse from address
+15-16. password, confirmPassword: Both EMPTY "" (never fill passwords)
+
+Return JSON array: ["value1", "value2", ..., "value${fieldData.length}"]
+Total values to return: ${fieldData.length}`;
 
   try {
     const session = await LanguageModel.create({
