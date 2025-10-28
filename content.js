@@ -22,65 +22,6 @@ style.textContent = `
 `;
 document.head.appendChild(style);
 
-// Detect forms and analyze fields
-function detectForms() {
-  const forms = document.querySelectorAll('form');
-  forms.forEach(form => {
-    const inputs = form.querySelectorAll('input, textarea, select');
-    let canFill = false;
-    inputs.forEach(input => {
-      // Simple check: if input has name or id, assume it can be filled
-      if (input.name || input.id) {
-        canFill = true;
-        input.classList.add('form-genie-highlight');
-      }
-    });
-    if (canFill) {
-      // Add tooltip to indicate right-click functionality
-      addFormTooltip(form);
-    }
-  });
-}
-
-// Add tooltip to indicate right-click functionality
-function addFormTooltip(form) {
-  const tooltip = document.createElement('div');
-  tooltip.textContent = 'Right-click anywhere on the page to fill forms with Form Genie ✨';
-  tooltip.style.cssText = `
-    position: absolute;
-    background: rgba(102, 126, 234, 0.95);
-    color: white;
-    padding: 8px 12px;
-    border-radius: 6px;
-    font-size: 12px;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    font-weight: 500;
-    z-index: 1000;
-    pointer-events: none;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  `;
-
-  const rect = form.getBoundingClientRect();
-  tooltip.style.top = `${rect.top - 35}px`;
-  tooltip.style.left = `${rect.left}px`;
-
-  document.body.appendChild(tooltip);
-
-  // Show tooltip briefly when form is detected
-  setTimeout(() => {
-    tooltip.style.opacity = '1';
-    setTimeout(() => {
-      tooltip.style.opacity = '0';
-      setTimeout(() => {
-        if (tooltip.parentNode) {
-          document.body.removeChild(tooltip);
-        }
-      }, 300);
-    }, 3000);
-  }, 500);
-}
 
 // Fill the form using AI
 async function fillForm(form) {
@@ -261,12 +202,12 @@ Field Metadata:
 ${fieldSummary}
 
 Instructions:
+- If we don't have relevant profile data for a field, return an empty string for that field. e.g. middle name, credit card info, password, etc.
 - Produce the best string value for each field based on profile and metadata.
 - MUST match any regex/pattern exactly (transform profile data as needed: remove punctuation, strip country codes, reformat).
 - Dates: Convert YYYY-MM-DD to requested format (e.g., MM/DD/YYYY).
 - Addresses: Split into street (with apt), city, state, zip for separate fields.
 - Phones: Follow placeholder/pattern (e.g., (123) 456-7890).
-- Passwords/credit cards: Leave empty.
 
 Output: JSON object with exact field names as keys, values as strings (empty if impossible to match pattern).`;
 
@@ -432,9 +373,6 @@ function getLabelForInput(input) {
   const label = document.querySelector(`label[for="${input.id}"]`);
   return label ? label.textContent : '';
 }
-
-// Run on load
-detectForms();
 
 // Also run on dynamic content changes if needed
 // For simplicity, assume static forms
